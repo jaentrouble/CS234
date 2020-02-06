@@ -52,12 +52,20 @@ def policy_evaluation(P, nS, nA, policy, gamma=0.9, tol=1e-3):
 	"""
 
 	value_function = np.zeros(nS)
+	loop = True
+	lp = 0
+	while loop :
+		lp += 1
+		v_pre = value_function.copy()
+		for s in range(nS) :
+			new_val = 0
+			for s_tup in P[s][policy[s]] :
+				new_val += s_tup[2]*s_tup[0] + gamma*(value_function[s_tup[1]]*s_tup[0])
+				value_function[s] = new_val
+		print(lp, max(abs(v_pre - value_function)))
+		if max(abs(v_pre - value_function)) < tol :
+			loop = False
 
-	############################
-	# YOUR IMPLEMENTATION HERE #
-
-
-	############################
 	return value_function
 
 
@@ -82,12 +90,13 @@ def policy_improvement(P, nS, nA, value_from_policy, policy, gamma=0.9):
 	"""
 
 	new_policy = np.zeros(nS, dtype='int')
+	for s in range(nS) :
+		q = np.zeros(nA)
+		for a in range(nA) :
+			for s_tup in P[s][a]:
+				q[a] += s_tup[2]*s_tup[0] + gamma*(value_from_policy[s_tup[1]]*s_tup[0])
+		new_policy[s] = q.argmax()
 
-	############################
-	# YOUR IMPLEMENTATION HERE #
-
-
-	############################
 	return new_policy
 
 
@@ -111,12 +120,17 @@ def policy_iteration(P, nS, nA, gamma=0.9, tol=10e-3):
 
 	value_function = np.zeros(nS)
 	policy = np.zeros(nS, dtype=int)
-
-	############################
-	# YOUR IMPLEMENTATION HERE #
-
-
-	############################
+	loop = True
+	lp = 0
+	while loop :
+		lp += 1
+		bef_pol = policy.copy()
+		value_function = policy_evaluation(P, nS, nA, policy, gamma, tol)
+		policy = policy_improvement(P, nS, nA, value_function, policy, gamma)
+		print(lp)
+		if sum(abs(bef_pol-policy)) <= 0 :
+			loop = False
+	
 	return value_function, policy
 
 def value_iteration(P, nS, nA, gamma=0.9, tol=1e-3):
@@ -139,42 +153,50 @@ def value_iteration(P, nS, nA, gamma=0.9, tol=1e-3):
 
 	value_function = np.zeros(nS)
 	policy = np.zeros(nS, dtype=int)
-	############################
-	# YOUR IMPLEMENTATION HERE #
+	loop = True
+	while loop :
+		bef_val = value_function.copy()
+		for s in range(nS) :
+			q = np.zeros(nA)
+			for a in range(nA) :
+				for s_tup in P[s][a] :
+					q[a] += s_tup[2]*s_tup[0] + gamma*(value_function[s_tup[1]]*s_tup[0])
+			value_function[s] = max(q)
+			policy[s] = q.argmax()
+		if max(abs(bef_val - value_function)) < tol :
+			loop = False
 
-
-	############################
 	return value_function, policy
 
 def render_single(env, policy, max_steps=100):
-  """
-    This function does not need to be modified
-    Renders policy once on environment. Watch your agent play!
+	"""
+		This function does not need to be modified
+		Renders policy once on environment. Watch your agent play!
 
-    Parameters
-    ----------
-    env: gym.core.Environment
-      Environment to play on. Must have nS, nA, and P as
-      attributes.
-    Policy: np.array of shape [env.nS]
-      The action to take at a given state
-  """
+		Parameters
+		----------
+		env: gym.core.Environment
+		Environment to play on. Must have nS, nA, and P as
+		attributes.
+		Policy: np.array of shape [env.nS]
+		The action to take at a given state
+	"""
 
-  episode_reward = 0
-  ob = env.reset()
-  for t in range(max_steps):
-    env.render()
-    time.sleep(0.25)
-    a = policy[ob]
-    ob, rew, done, _ = env.step(a)
-    episode_reward += rew
-    if done:
-      break
-  env.render();
-  if not done:
-    print("The agent didn't reach a terminal state in {} steps.".format(max_steps))
-  else:
-  	print("Episode reward: %f" % episode_reward)
+	episode_reward = 0
+	ob = env.reset()
+	for t in range(max_steps):
+		env.render()
+		time.sleep(0.25)
+		a = policy[ob]
+		ob, rew, done, _ = env.step(a)
+		episode_reward += rew
+		if done:
+			break
+	env.render()
+	if not done:
+		print("The agent didn't reach a terminal state in {} steps.".format(max_steps))
+	else:
+		print("Episode reward: %f" % episode_reward)
 
 
 # Edit below to run policy and value iteration on different environments and
